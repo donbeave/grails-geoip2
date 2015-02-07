@@ -25,6 +25,11 @@ geoip2 {
     webService {
         userId = null
         licenseKey = null
+
+        host = 'geoip.maxmind.com'
+        locales = ['en']
+        connectTimeout = 3000
+        readTimeout = 20000
     }
 
     db {
