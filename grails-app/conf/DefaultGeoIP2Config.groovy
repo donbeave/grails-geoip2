@@ -38,5 +38,7 @@ geoip2 {
         connectionType = null
         domain = null
         isp = null
+
+        locales = ['en']
     }
 }

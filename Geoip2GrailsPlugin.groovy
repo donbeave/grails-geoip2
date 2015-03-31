@@ -1,69 +1,101 @@
-class Geoip2GrailsPlugin {
-    // the plugin version
-    def version = "0.1"
-    // the version or versions of Grails the plugin is designed for
-    def grailsVersion = "2.4 > *"
-    // resources that are excluded from plugin packaging
-    def pluginExcludes = [
-        "grails-app/views/error.gsp"
-    ]
+/*
+ * Copyright 2015 the original author or authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-    // TODO Fill in these fields
-    def title = "Geoip2 Plugin" // Headline display name of the plugin
-    def author = "Your name"
-    def authorEmail = ""
-    def description = '''\
-Brief summary/description of the plugin.
+import grails.util.Environment
+import org.codehaus.groovy.grails.commons.GrailsApplication
+
+/**
+ * @author <a href='mailto:donbeave@gmail.com'>Alexey Zhokhov</a>
+ */
+class Geoip2GrailsPlugin {
+
+    def version = '0.1'
+    def grailsVersion = '2.0 > *'
+    def dependsOn = [:]
+
+    def title = 'Grails GeoIP2 Plugin'
+    def author = 'Alexey Zhokhov'
+    def authorEmail = 'donbeave@gmail.com'
+    def description = '''\\
+This plugin facilitates grails integration with the opensource GeoIP2 framework offered by MaxMind.
+Using its straightforward API one can find out the country, area, city, geographical coordinates and
+others based on an IP.
+
+This product includes GeoLite data created by MaxMind, available from
+[www.maxmind.com|http://www.maxmind.com].
 '''
 
-    // URL to the plugin's documentation
-    def documentation = "http://grails.org/plugin/geoip2"
+    def documentation = 'http://grails.org/plugin/geoip2'
 
-    // Extra (optional) plugin metadata
+    def license = "APACHE"
 
-    // License: one of 'APACHE', 'GPL2', 'GPL3'
-//    def license = "APACHE"
+    def developers = [
+            [name: 'Alexey Zhokhov', email: 'donbeave@gmail.com']
+    ]
+    def organization = [name: 'Polusharie', url: 'http://www.polusharie.com']
 
-    // Details of company behind the plugin (if there is one)
-//    def organization = [ name: "My Company", url: "http://www.my-company.com/" ]
+    def issueManagement = [system: 'GitHub', url: 'https://github.com/donbeave/grails-geoip2/issues']
+    def scm = [url: 'https://github.com/donbeave/grails-geoip2/']
 
-    // Any additional developers beyond the author specified above.
-//    def developers = [ [ name: "Joe Bloggs", email: "joe@bloggs.net" ]]
+    // Get a configuration instance
+    def getConfiguration(GrailsApplication application) {
+        def config = application.config
 
-    // Location of the plugin's issue tracker.
-//    def issueManagement = [ system: "JIRA", url: "http://jira.grails.org/browse/GPMYPLUGIN" ]
+        // try to load it from class file and merge into GrailsApplication#config
+        // Config.groovy properties override the default one
+        try {
+            Class dataSourceClass = application.getClassLoader().loadClass('DefaultGeoIP2Config')
+            ConfigSlurper configSlurper = new ConfigSlurper(Environment.current.name)
+            Map binding = [:]
+            binding.userHome = System.properties['user.home']
+            binding.grailsEnv = application.metadata['grails.env']
+            binding.appName = application.metadata['app.name']
+            binding.appVersion = application.metadata['app.version']
+            configSlurper.binding = binding
 
-    // Online location of the plugin's browseable source code.
-//    def scm = [ url: "http://svn.codehaus.org/grails-plugins/" ]
+            ConfigObject defaultConfig = configSlurper.parse(dataSourceClass)
 
-    def doWithWebDescriptor = { xml ->
-        // TODO Implement additions to web.xml (optional), this event occurs before
+            ConfigObject newGeoConfig = new ConfigObject()
+            newGeoConfig.putAll(defaultConfig.geoip2.merge(config.grails.plugin.geoip2))
+
+            config.grails.plugin.geoip2 = newGeoConfig
+            application.configChanged()
+            return config.grails.plugin.geoip2
+        } catch (ClassNotFoundException e) {
+            log.debug("GeoConfig default configuration file not found: ${e.message}")
+        }
+
+        // Here the default configuration file was not found, so we
+        // try to get it from GrailsApplication#config and add some mandatory default values
+        if (config.grails.plugin.containsKey('geoip2')) {
+            if (config.grails.plugin.geoip.active == [:]) {
+                config.grails.plugin.geoip.active = true
+            }
+            if (config.grails.plugin.geoip.printStatusMessages == [:]) {
+                config.grails.plugin.geoip.printStatusMessages = true
+            }
+            application.configChanged()
+            return config.grails.plugin.geoip
+        }
+
+        // No config found, add some default and obligatory properties
+        config.grails.plugin.geoip.active = true
+        config.grails.plugin.geoip.printStatusMessages = true
+        application.configChanged()
+        return config
     }
 
-    def doWithSpring = {
-        // TODO Implement runtime spring config (optional)
-    }
-
-    def doWithDynamicMethods = { ctx ->
-        // TODO Implement registering dynamic methods to classes (optional)
-    }
-
-    def doWithApplicationContext = { ctx ->
-        // TODO Implement post initialization spring config (optional)
-    }
-
-    def onChange = { event ->
-        // TODO Implement code that is executed when any artefact that this plugin is
-        // watching is modified and reloaded. The event contains: event.source,
-        // event.application, event.manager, event.ctx, and event.plugin.
-    }
-
-    def onConfigChange = { event ->
-        // TODO Implement code that is executed when the project configuration changes.
-        // The event is the same as for 'onChange'.
-    }
-
-    def onShutdown = { event ->
-        // TODO Implement code that is executed when the application shuts down (optional)
-    }
 }
