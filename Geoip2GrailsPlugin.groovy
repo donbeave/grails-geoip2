@@ -22,7 +22,7 @@ import org.codehaus.groovy.grails.commons.GrailsApplication
  */
 class Geoip2GrailsPlugin {
 
-    def version = '0.1'
+    def version = '2.1.0'
     def grailsVersion = '2.0 > *'
     def dependsOn = [:]
 
